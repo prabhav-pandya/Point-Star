@@ -10,9 +10,9 @@ import java.util.List;
 
 
 public class PointStar {
-
+    private static final Interpreter interpreter = new Interpreter();
     static boolean hadError = false;
-
+    static boolean hadRuntimeError = false;
 
     public static void main(String[] args) throws IOException {
         if (args.length > 1) {
@@ -48,14 +48,25 @@ public class PointStar {
         Scanner scanner = new Scanner(source);
         List<Token> tokens = scanner.scanTokens();
 
-        // For now, just print the tokens.
-        for (Token token : tokens) {
-            System.out.println(token);
-        }
+        Parser parser = new Parser(tokens);
+        List<Stmt> statements = parser.parse();
+
+        interpreter.interpret(statements);
+
+        // Stop if there was a syntax error.
+        if (hadError) return;
+        if (hadRuntimeError) System.exit(70);
+
     }
 
     static void error(int line, String message) {
         report(line, "", message);
+    }
+
+    static void runtimeError(RuntimeError error) {
+        System.err.println(error.getMessage() +
+                "\n[line " + error.token.line + "]");
+        hadRuntimeError = true;
     }
 
     private static void report(int line, String where,
@@ -63,6 +74,14 @@ public class PointStar {
         System.err.println(
                 "[line " + line + "] Error" + where + ": " + message);
         hadError = true;
+    }
+
+    static void error(Token token, String message) {
+        if (token.type == TokenType.EOF) {
+            report(token.line, " at end", message);
+        } else {
+            report(token.line, " at '" + token.lexeme + "'", message);
+        }
     }
 
 }
